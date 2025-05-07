@@ -2,14 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 
+interface RouteParams {
+  params: {
+    id: string
+  }
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteParams
 ) {
   try {
     const db = await connectToDatabase()
+    const { id } = context.params
     
-    if (!params.id || !ObjectId.isValid(params.id)) {
+    if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid bundle kit ID" },
         { status: 400 }
@@ -17,7 +24,7 @@ export async function GET(
     }
 
     const bundleKit = await db.collection("bundleKits")
-      .findOne({ _id: new ObjectId(params.id) })
+      .findOne({ _id: new ObjectId(id) })
 
     if (!bundleKit) {
       return NextResponse.json(
@@ -41,13 +48,14 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteParams
 ) {
   try {
     const db = await connectToDatabase()
+    const { id } = context.params
     const body = await request.json()
 
-    if (!params.id || !ObjectId.isValid(params.id)) {
+    if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid bundle kit ID" },
         { status: 400 }
@@ -56,7 +64,7 @@ export async function PUT(
 
     const updatedBundleKit = await db.collection("bundleKits")
       .findOneAndUpdate(
-        { _id: new ObjectId(params.id) },
+        { _id: new ObjectId(id) },
         { $set: { ...body, updatedAt: new Date() } },
         { returnDocument: 'after' }
       )
@@ -83,12 +91,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteParams
 ) {
   try {
     const db = await connectToDatabase()
+    const { id } = context.params
 
-    if (!params.id || !ObjectId.isValid(params.id)) {
+    if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid bundle kit ID" },
         { status: 400 }
@@ -96,7 +105,7 @@ export async function DELETE(
     }
 
     const result = await db.collection("bundleKits")
-      .deleteOne({ _id: new ObjectId(params.id) })
+      .deleteOne({ _id: new ObjectId(id) })
 
     if (result.deletedCount === 0) {
       return NextResponse.json(
