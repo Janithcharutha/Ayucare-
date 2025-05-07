@@ -1,14 +1,13 @@
-import { Suspense } from 'react'
-import { notFound } from 'next/navigation'
-import CategoryHeader from '@/components/category-header'
-import ProductGrid from '@/components/product-grid'
-import LoadingSpinner from '@/components/loading-spinner'
+import { Suspense } from "react"
+import { notFound } from "next/navigation"
+import CategoryHeader from "@/components/category-header"
+import ProductGrid from "@/components/product-grid"
+import LoadingSpinner from "@/components/loading-spinner"
 import type { Category, Product } from "@/lib/types"
 
 async function getCategoryData(slug: string): Promise<Category | null> {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories?slug=${slug}`, {
-      cache: 'force-cache',
       next: { revalidate: 3600 }
     })
     if (!res.ok) return null
@@ -29,9 +28,7 @@ async function getSubcategoryProducts(categoryId: string, subcategoryId: string)
     
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/products/subcategory?${queryParams}`,
-      {
-        next: { revalidate: 3600 }
-      }
+      { cache: 'no-store' }
     )
 
     if (!res.ok) {
@@ -50,14 +47,11 @@ export default async function SubcategoryPage({
 }: {
   params: { category: string; subcategory: string }
 }) {
-  const categorySlug = params.category
-  const subcategorySlug = params.subcategory
-
-  const categoryData = await getCategoryData(categorySlug)
+  const categoryData = await getCategoryData(params.category)
   if (!categoryData) notFound()
 
   const currentSubcategory = categoryData.subcategories.find(
-    sub => sub.slug === subcategorySlug
+    sub => sub.slug === params.subcategory
   )
   if (!currentSubcategory) notFound()
 
@@ -66,19 +60,13 @@ export default async function SubcategoryPage({
     currentSubcategory._id.toString()
   )
 
-  // Create a modified category data without the image
-  const categoryDataWithoutImage = {
-    ...categoryData,
-    image: undefined // This will hide the image
-  }
-
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <div className="container mx-auto py-8">
-        <CategoryHeader
-          category={categoryDataWithoutImage}
+        <CategoryHeader 
+          category={categoryData}
           subcategories={categoryData.subcategories}
-          currentSubcategory={subcategorySlug}
+          currentSubcategory={params.subcategory}
         />
         <ProductGrid products={products} />
       </div>

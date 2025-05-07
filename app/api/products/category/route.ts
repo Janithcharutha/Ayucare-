@@ -4,12 +4,11 @@ import { connectToDatabase } from '@/lib/mongodb'
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const categoryId = searchParams.get('categoryId')
-    const subcategoryId = searchParams.get('subcategoryId')
+    const category = searchParams.get('category')
 
-    if (!categoryId || !subcategoryId) {
+    if (!category) {
       return NextResponse.json(
-        { error: "Category ID and subcategory ID are required" },
+        { error: "Category is required" },
         { status: 400 }
       )
     }
@@ -18,20 +17,24 @@ export async function GET(request: Request) {
     
     const products = await db.collection("products")
       .find({ 
-        category: categoryId,
-        subcategory: subcategoryId,
-        status: "active"
+        category,
+        status: "active" 
       })
       .sort({ createdAt: -1 })
       .toArray()
 
-    return NextResponse.json(products.map(product => ({
+    const formattedProducts = products.map(product => ({
       ...product,
       _id: product._id.toString()
-    })))
+    }))
 
+    return NextResponse.json(formattedProducts, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400'
+      }
+    })
   } catch (error) {
-    console.error("Error fetching subcategory products:", error)
+    console.error("Error fetching category products:", error)
     return NextResponse.json(
       { error: "Failed to fetch products" },
       { status: 500 }

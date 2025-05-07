@@ -31,6 +31,8 @@ interface Product {
     benefits: string[]
   }[]
   keyBenefits: string[]
+  categorySlug: string
+  subcategorySlug: string
 }
 
 export default function ProductPage({
@@ -39,23 +41,32 @@ export default function ProductPage({
   params: { category: string; subcategory: string; product: string }
 }) {
   const [product, setProduct] = useState<Product | null>(null)
-  const [quantity, setQuantity] = useState(1)
-  const [activeImage, setActiveImage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [quantity, setQuantity] = useState(1)
+  const [activeImage, setActiveImage] = useState(0)
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await fetch(`/api/products?slug=${params.product}`)
-        if (!response.ok) {
+        // First, fetch the product by slug
+        const slugResponse = await fetch(`/api/products/by-slug/${params.product}`)
+        if (!slugResponse.ok) {
           throw new Error('Failed to fetch product')
         }
-        const data = await response.json()
-        if (!data) {
+        const productData = await slugResponse.json()
+        
+        if (!productData) {
           throw new Error('Product not found')
         }
-        setProduct(data)
+
+        // Verify the category and subcategory match
+        if (productData.category !== params.category || 
+            productData.subcategory !== params.subcategory) {
+          throw new Error('Invalid product URL')
+        }
+
+        setProduct(productData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch product')
       } finally {
@@ -64,7 +75,7 @@ export default function ProductPage({
     }
 
     fetchProduct()
-  }, [params.product])
+  }, [params.product, params.category, params.subcategory])
 
   const incrementQuantity = () => setQuantity((prev) => prev + 1)
   const decrementQuantity = () => setQuantity((prev) => (prev > 1 ? prev - 1 : 1))
@@ -105,11 +116,11 @@ export default function ProductPage({
       <div className="flex items-center text-sm text-gray-500 mb-8">
         <Link href="/" className="hover:text-gray-800">HOME</Link>
         <ChevronRight className="h-4 w-4 mx-2" />
-        <Link href={`/products/${params.category}`} className="hover:text-gray-800">
+        <Link href={`/products/${product.categorySlug}`} className="hover:text-gray-800">
           {product.categoryName}
         </Link>
         <ChevronRight className="h-4 w-4 mx-2" />
-        <Link href={`/products/${params.category}/${params.subcategory}`} className="hover:text-gray-800">
+        <Link href={`/products/${product.categorySlug}/${product.subcategorySlug}`} className="hover:text-gray-800">
           {product.subcategoryName}
         </Link>
       </div>
@@ -342,8 +353,6 @@ export default function ProductPage({
                               </button>
                             ))}
                           </div>
-                        </div>
-                        <div>
                           <label htmlFor="review" className="block mb-1 text-sm">
                             Review
                           </label>

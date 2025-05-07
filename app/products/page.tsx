@@ -1,21 +1,18 @@
 import { Suspense } from "react"
-import { Metadata } from "next"
-import ProductGrid from "@/components/product-grid"
 import LoadingSpinner from "@/components/loading-spinner"
+import ProductGrid from "@/components/product-grid"
 import type { Product } from "@/lib/types"
-
-export const metadata: Metadata = {
-  title: "All Products - Aroma Bliss",
-  description: "Browse our complete collection of natural and organic products."
-}
 
 async function getAllProducts(): Promise<Product[]> {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products`, {
-      cache: 'force-cache',
-      next: { revalidate: 3600 }
+      cache: 'no-store' // Disable cache to always get fresh data
     })
-    if (!res.ok) return []
+    
+    if (!res.ok) {
+      throw new Error('Failed to fetch products')
+    }
+    
     return res.json()
   } catch (error) {
     console.error('Error fetching products:', error)

@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Search, ShoppingBag, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { type FC } from "react"
+import { usePathname } from "next/navigation"
 
 interface Subcategory {
   _id: string
@@ -29,6 +30,7 @@ const Header: FC = () => {
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const pathname = usePathname()
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -77,7 +79,7 @@ const Header: FC = () => {
       alt="Aroma Bliss Ceylon"
       width={180}
       height={80}
-      className="h-auto scale-[3.5]"
+      className="h-auto scale-[3]"
     />
   </Link>
 </div>
@@ -104,41 +106,43 @@ const Header: FC = () => {
               SHOP
             </Link>
           </li>
-          <li
-  className="relative dropdown"
-  onMouseEnter={() => setIsProductsOpen(true)}
-  onMouseLeave={() => setIsProductsOpen(false)}
->
-  <Link href="/products" className="flex items-center hover:text-gray-600 transition-colors">
-    PRODUCTS <ChevronDown className="h-4 w-4 ml-1" />
-  </Link>
+          
+           <li
+              className="relative dropdown"
+              onMouseEnter={() => setIsProductsOpen(true)}
+              onMouseLeave={() => setIsProductsOpen(false)}
+               >
+              <Link href="/products" className="flex items-center hover:text-gray-600 transition-colors">
+                PRODUCTS <ChevronDown className="h-4 w-4 ml-1" />
+              </Link>
 
-  {isProductsOpen && (
-    <div className="dropdown-menu bg-white shadow-md p-6 min-w-[600px] z-50 grid grid-cols-3 gap-6">
-      {categories.map((category: Category) => (
-        <div key={category._id}>
-          <h3 className="font-medium mb-4">
-            <Link href={`/products/${category.slug}`} className="hover:text-gray-600">
-              {category.name}
-            </Link>
-          </h3>
-          <ul className="space-y-3">
-            {category.subcategories.map((subcategory: Subcategory) => (
-              <li key={subcategory._id}>
-                <Link
-                  href={`/products/${category.slug}/${subcategory.slug}`}
-                  className="block text-gray-600 hover:text-black"
-                >
-                  {subcategory.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
-  )}
-</li>
+              {isProductsOpen && (
+                <div className="dropdown-menu bg-white shadow-md p-6 min-w-[600px] z-50 grid grid-cols-3 gap-6">
+                  {categories.map((category: Category) => (
+                    <div key={category._id}>
+                      <h3 className="font-medium mb-4">
+                        <Link href={`/products/${category.slug}`} className="hover:text-gray-600">
+                          {category.name}
+                        </Link>
+                      </h3>
+                      <ul className="space-y-3">
+                        {category.subcategories.map((subcategory: Subcategory) => (
+                          <li key={subcategory._id}>
+                            <Link
+                              href={`/products/${category.slug}/${subcategory.slug}`}
+                              className="block text-gray-600 hover:text-black"
+                            >
+                              {subcategory.name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+          </li>
+
           <li>
             <Link href="/offers" className="hover:text-gray-600 transition-colors">
               OFFERS
@@ -152,11 +156,6 @@ const Header: FC = () => {
           <li>
             <Link href="/gifting" className="hover:text-gray-600 transition-colors">
               GIFTING
-            </Link>
-          </li>
-          <li>
-            <Link href="/beauty-lab" className="hover:text-gray-600 transition-colors">
-              BEAUTY LAB
             </Link>
           </li>
           <li
@@ -190,7 +189,14 @@ const Header: FC = () => {
             )}
           </li>
           <li>
-            <Link href="/about" className="hover:text-gray-600 transition-colors">
+            <Link 
+              href="/about"
+              className={`transition-colors ${
+                pathname === '/about' 
+                  ? 'text-black font-medium' 
+                  : 'text-gray-600 hover:text-black'
+              }`}
+            >
               ABOUT
             </Link>
           </li>

@@ -3,56 +3,30 @@ import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import type { Product } from '@/lib/types'
 
-export async function GET(request: Request) {
-  const cacheControl = 'public, s-maxage=3600, stale-while-revalidate=86400'
-
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const slug = searchParams.get('slug')
-    const categoryId = searchParams.get('category')
-    const subcategoryId = searchParams.get('subcategory')
-    
     const db = await connectToDatabase()
     
-    // Handle single product fetch by slug
-    if (slug) {
-      const product = await db.collection("products").findOne({ slug })
-      if (!product) {
-        return NextResponse.json(
-          { error: "Product not found" }, 
-          { status: 404, headers: { 'Cache-Control': 'no-store' } }
-        )
-      }
-      return NextResponse.json(product, { headers: { 'Cache-Control': cacheControl } })
-    }
-    
-    // Handle category/subcategory filtering
-    if (categoryId) {
-      const query: any = { category: categoryId }
-      if (subcategoryId) {
-        query.subcategory = subcategoryId
-      }
-      const products = await db.collection("products")
-        .find(query)
-        .sort({ createdAt: -1 })
-        .toArray()
-      
-      return NextResponse.json(products, { headers: { 'Cache-Control': cacheControl } })
-    }
-    
-    // Return all products with pagination
     const products = await db.collection("products")
       .find({ status: "active" })
       .sort({ createdAt: -1 })
-      .limit(24)  // Limit to 24 products per page
       .toArray()
-    
-    return NextResponse.json(products, { headers: { 'Cache-Control': cacheControl } })
+
+    const formattedProducts = products.map(product => ({
+      ...product,
+      _id: product._id.toString()
+    }))
+
+    return NextResponse.json(formattedProducts, {
+      headers: {
+        'Cache-Control': 'no-store'
+      }
+    })
   } catch (error) {
     console.error("Error fetching products:", error)
     return NextResponse.json(
       { error: "Failed to fetch products" },
-      { status: 500, headers: { 'Cache-Control': 'no-store' } }
+      { status: 500 }
     )
   }
 }
