@@ -11,10 +11,10 @@ type RouteParams = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = params
+    const { id } = context.params
     const db = await connectToDatabase()
 
     if (!id || !ObjectId.isValid(id)) {
@@ -39,10 +39,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = params
+    const { id } = context.params
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
     }
@@ -90,23 +90,5 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const { id } = params
-    const db = await connectToDatabase()
-    if (!id || !ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
-    }
-    const result = await db.collection("bundleKits").deleteOne({ _id: new ObjectId(id) })
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ error: "Bundle kit not found" }, { status: 404 })
-    }
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("Error deleting bundle kit:", error)
-    return NextResponse.json({ error: "Failed to delete bundle kit" }, { status: 500 })
-  }
-}
+// export async function DELETE(
+//   request: NextRequest,
