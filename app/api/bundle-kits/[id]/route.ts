@@ -3,9 +3,12 @@ import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import type { BundleProduct } from '@/types/bundle-kit'
 
-export async function GET(request: NextRequest, context: { params: { id: string } }): Promise<NextResponse> {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
   try {
-    const { id } = context.params
+    const { id } = params
     const db = await connectToDatabase()
 
     if (!id || !ObjectId.isValid(id)) {
@@ -28,15 +31,18 @@ export async function GET(request: NextRequest, context: { params: { id: string 
   }
 }
 
-export async function PUT(request: NextRequest, context: { params: { id: string } }): Promise<NextResponse> {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
   try {
-    const { id } = context.params
+    const { id } = params
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
     }
 
     const db = await connectToDatabase()
-    const body = await request.json()
+    const body = await req.json()
     const { _id, createdAt, updatedAt, ...updateData } = body
 
     const processedProducts = updateData.products?.map((product: BundleProduct) => ({
@@ -83,9 +89,12 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: { id: string } }): Promise<NextResponse> {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
   try {
-    const { id } = context.params
+    const { id } = params
     const db = await connectToDatabase()
 
     if (!id || !ObjectId.isValid(id)) {
