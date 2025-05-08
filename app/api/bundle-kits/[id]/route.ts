@@ -15,7 +15,6 @@ export async function GET(
 ) {
   try {
     const { id } = params
-
     const db = await connectToDatabase()
 
     if (!id || !ObjectId.isValid(id)) {
@@ -44,43 +43,18 @@ export async function PUT(
 ) {
   try {
     const { id } = params
-
-    // Validate ID format
     if (!id || !ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid bundle kit ID" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
     }
-
     const db = await connectToDatabase()
     const body = await request.json()
-
-    // Basic validation
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json(
-        { error: "Invalid request body" },
-        { status: 400 }
-      )
-    }
-
-    // Remove immutable fields
     const { _id, createdAt, updatedAt, ...updateData } = body
-
-    // Process products with validation
-    const processedProducts = updateData.products?.map((product: BundleProduct) => {
-      if (!product.productId || !product.productName) {
-        throw new Error("Product ID and name are required")
-      }
-
-      return {
-        ...product,
-        productId: new ObjectId(product.productId),
-        quantity: Math.max(1, Number(product.quantity) || 1),
-        price: Math.max(0, Number(product.price) || 0)
-      }
-    }) || []
-
+    const processedProducts = updateData.products?.map((product: BundleProduct) => ({
+      ...product,
+      productId: new ObjectId(product.productId),
+      quantity: Math.max(1, Number(product.quantity) || 1),
+      price: Math.max(0, Number(product.price) || 0)
+    })) || []
     const result = await db.collection("bundleKits").findOneAndUpdate(
       { _id: new ObjectId(id) },
       {
@@ -99,14 +73,9 @@ export async function PUT(
       },
       { returnDocument: 'after' }
     )
-
     if (!result?.value) {
-      return NextResponse.json(
-        { error: "Bundle kit not found" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "Bundle kit not found" }, { status: 404 })
     }
-
     return NextResponse.json({
       ...result.value,
       _id: result.value._id.toString(),
@@ -115,16 +84,9 @@ export async function PUT(
         productId: product.productId.toString()
       }))
     })
-
   } catch (error) {
     console.error("Error updating bundle kit:", error)
-    return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : "Failed to update bundle kit",
-        details: process.env.NODE_ENV === 'development' ? error : undefined
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to update bundle kit" }, { status: 500 })
   }
 }
 
@@ -134,19 +96,14 @@ export async function DELETE(
 ) {
   try {
     const { id } = params
-
     const db = await connectToDatabase()
-
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
     }
-
     const result = await db.collection("bundleKits").deleteOne({ _id: new ObjectId(id) })
-
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Bundle kit not found" }, { status: 404 })
     }
-
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error deleting bundle kit:", error)
