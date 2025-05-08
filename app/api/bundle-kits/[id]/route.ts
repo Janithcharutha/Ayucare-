@@ -3,14 +3,10 @@ import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import type { BundleProduct } from '@/types/bundle-kit'
 
-interface Params {
-  params: { id: string }
-}
-
 export async function GET(
   request: NextRequest,
-  { params }: Params
-) {
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
   try {
     const { id } = params
     const db = await connectToDatabase()
@@ -37,8 +33,8 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: Params
-) {
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
   try {
     const { id } = params
     if (!id || !ObjectId.isValid(id)) {
@@ -95,8 +91,8 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: Params
-) {
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
   try {
     const { id } = params
     const db = await connectToDatabase()
