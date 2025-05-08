@@ -11,15 +11,16 @@ import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 ////////////////
 
-interface PageProps {
+interface OrderPageProps {
   params: {
-    id: string;
-  };
+    id: string
+  }
 }
 
 /////////////
 
-export default function OrderDetailsPage({ params }: { params: { id: string } }) {
+
+export default async function OrderDetailPage({ params }: OrderPageProps) {
   const { id } = params
 
   // Sample order data
