@@ -1,14 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import type { BundleProduct } from '@/types/bundle-kit'
 
+/*
+  Note: Using Request (the built-in type) instead of NextRequest,
+  and we include a dummy searchParams property in the context.
+*/
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: Request,
+  context: { params: { id: string }; searchParams: any }
 ) {
   try {
-    const { id } = params
+    const { id } = context.params
     const db = await connectToDatabase()
 
     if (!id || !ObjectId.isValid(id)) {
@@ -32,14 +36,15 @@ export async function GET(
 }
 
 export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: Request,
+  context: { params: { id: string }; searchParams: any }
 ) {
   try {
-    const { id } = params
+    const { id } = context.params
     const db = await connectToDatabase()
     const body = await request.json()
     // ...rest of your PUT logic...
+    return NextResponse.json({ message: "Bundle kit updated" })
   } catch (error) {
     console.error("Error updating bundle kit:", error)
     return NextResponse.json({ error: "Failed to update bundle kit" }, { status: 500 })
@@ -47,13 +52,14 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: Request,
+  context: { params: { id: string }; searchParams: any }
 ) {
   try {
-    const { id } = params
+    const { id } = context.params
     const db = await connectToDatabase()
     // ...rest of your DELETE logic...
+    return NextResponse.json({ message: "Bundle kit deleted" })
   } catch (error) {
     console.error("Error deleting bundle kit:", error)
     return NextResponse.json({ error: "Failed to delete bundle kit" }, { status: 500 })
