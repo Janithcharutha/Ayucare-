@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
-import type { BundleKit, BundleProduct } from '@/types/bundle-kit'
-
-// Define the params type
-type RouteParams = {
-  params: { id: string },
-  searchParams: { [key: string]: string | string[] | undefined }
-}
+import type { BundleProduct } from '@/types/bundle-kit'
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const { id } = params
     const db = await connectToDatabase()
 
     if (!id || !ObjectId.isValid(id)) {
@@ -39,10 +33,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const { id } = params
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
     }
@@ -90,5 +84,23 @@ export async function PUT(
   }
 }
 
-// export async function DELETE(
-//   request: NextRequest,
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params
+    const db = await connectToDatabase()
+    if (!id || !ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
+    }
+    const result = await db.collection("bundleKits").deleteOne({ _id: new ObjectId(id) })
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: "Bundle kit not found" }, { status: 404 })
+    }
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting bundle kit:", error)
+    return NextResponse.json({ error: "Failed to delete bundle kit" }, { status: 500 })
+  }
+}
