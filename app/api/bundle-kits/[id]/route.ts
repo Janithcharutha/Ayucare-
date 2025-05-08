@@ -3,12 +3,18 @@ import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import type { BundleKit, BundleProduct } from '@/types/bundle-kit'
 
+// Define the params type
+type RouteParams = {
+  params: { id: string },
+  searchParams: { [key: string]: string | string[] | undefined }
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteParams
 ) {
   try {
-    const { id } = params
+    const { id } = context.params
 
     const db = await connectToDatabase()
 
@@ -34,10 +40,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteParams
 ) {
   try {
-    const { id } = params
+    const { id } = context.params
 
     // Validate ID format
     if (!id || !ObjectId.isValid(id)) {
@@ -124,10 +130,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteParams
 ) {
   try {
-    const { id } = params
+    const { id } = context.params
 
     const db = await connectToDatabase()
 
