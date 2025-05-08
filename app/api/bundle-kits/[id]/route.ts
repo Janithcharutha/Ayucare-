@@ -5,10 +5,10 @@ import type { BundleProduct } from '@/types/bundle-kit'
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const { id } = params
     const db = await connectToDatabase()
 
     if (!id || !ObjectId.isValid(id)) {
@@ -33,22 +33,25 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const { id } = params
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
     }
+
     const db = await connectToDatabase()
     const body = await request.json()
     const { _id, createdAt, updatedAt, ...updateData } = body
+
     const processedProducts = updateData.products?.map((product: BundleProduct) => ({
       ...product,
       productId: new ObjectId(product.productId),
       quantity: Math.max(1, Number(product.quantity) || 1),
       price: Math.max(0, Number(product.price) || 0)
     })) || []
+
     const result = await db.collection("bundleKits").findOneAndUpdate(
       { _id: new ObjectId(id) },
       {
@@ -67,9 +70,11 @@ export async function PUT(
       },
       { returnDocument: 'after' }
     )
+
     if (!result?.value) {
       return NextResponse.json({ error: "Bundle kit not found" }, { status: 404 })
     }
+
     return NextResponse.json({
       ...result.value,
       _id: result.value._id.toString(),
@@ -86,18 +91,22 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const { id } = params
     const db = await connectToDatabase()
+
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
     }
+
     const result = await db.collection("bundleKits").deleteOne({ _id: new ObjectId(id) })
+
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Bundle kit not found" }, { status: 404 })
     }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error deleting bundle kit:", error)
