@@ -7,6 +7,12 @@ interface RouteParams {
   id: string
 }
 
+interface RouteContext {
+  params: {
+    id: string
+  }
+}
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<RouteParams> }
@@ -37,12 +43,14 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: RouteContext
 ) {
   try {
+    const { id } = context.params
+
     // Validate ID format
-    if (!params.id || !ObjectId.isValid(params.id)) {
+    if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid bundle kit ID" },
         { status: 400 }
@@ -50,20 +58,15 @@ export async function PUT(
     }
 
     const db = await connectToDatabase()
-    
-    // Check if bundle exists first
-    const existingBundle = await db.collection("bundleKits").findOne({
-      _id: new ObjectId(params.id)
-    })
+    const body = await request.json()
 
-    if (!existingBundle) {
+    // Basic validation
+    if (!body || typeof body !== 'object') {
       return NextResponse.json(
-        { error: "Bundle kit not found" },
-        { status: 404 }
+        { error: "Invalid request body" },
+        { status: 400 }
       )
     }
-
-    const body = await request.json()
 
     // Remove immutable fields
     const { _id, createdAt, updatedAt, ...updateData } = body
@@ -83,7 +86,7 @@ export async function PUT(
     }) || []
 
     const result = await db.collection("bundleKits").findOneAndUpdate(
-      { _id: new ObjectId(params.id) },
+      { _id: new ObjectId(id) },
       {
         $set: {
           name: updateData.name,
@@ -98,13 +101,14 @@ export async function PUT(
           updatedAt: new Date().toISOString()
         }
       },
-      { 
-        returnDocument: 'after'
-      }
+      { returnDocument: 'after' }
     )
 
     if (!result?.value) {
-      throw new Error("Failed to update bundle kit")
+      return NextResponse.json(
+        { error: "Bundle kit not found" },
+        { status: 404 }
+      )
     }
 
     return NextResponse.json({
