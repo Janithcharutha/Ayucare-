@@ -5,19 +5,51 @@ import { ObjectId } from "mongodb"
 export async function GET() {
   try {
     const db = await connectToDatabase()
-    const offers = await db.collection("offers").find({}).toArray()
+    
+    const offers = await db
+      .collection("offers")
+      .aggregate([
+        {
+          $match: {
+            status: "active",
+            startDate: { $lte: new Date().toISOString().split('T')[0] },
+            endDate: { $gte: new Date().toISOString().split('T')[0] }
+          }
+        },
+        {
+          $lookup: {
+            from: "products",
+            localField: "productId",
+            foreignField: "_id",
+            as: "product"
+          }
+        },
+        { $unwind: "$product" },
+        {
+          $project: {
+            _id: 1,
+            name: "$product.name",
+            slug: "$product.slug",
+            category: "$product.category",
+            categoryName: "$product.categoryName",
+            image: "$product.images",
+            originalPrice: "$product.price",
+            discountedPrice: 1,
+            description: "$product.description",
+            contents: "$product.contents",
+            discountPercentage: 1
+          }
+        }
+      ])
+      .toArray()
 
-    // Convert MongoDB ObjectId to string for each offer
-    const formattedOffers = offers.map((offer) => ({
-      ...offer,
-      _id: offer._id.toString(),
-      productId: offer.productId.toString(),
-    }))
-
-    return NextResponse.json(formattedOffers)
+    return NextResponse.json(offers)
   } catch (error) {
     console.error("Error fetching offers:", error)
-    return NextResponse.json({ error: "Failed to fetch offers" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to fetch offers" },
+      { status: 500 }
+    )
   }
 }
 

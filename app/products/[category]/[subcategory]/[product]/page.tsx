@@ -186,21 +186,6 @@ export default function ProductPage({
           </div>
 
           <p className="text-2xl font-semibold mb-4">Rs.{product.price.toLocaleString()}</p>
-
-          {/* Installment Options */}
-          {/* <div className="text-gray-600 mb-6">
-            <p>
-              3 X Rs.{(product.price / 3).toFixed(2)} with{" "}
-              <span className="bg-blue-900 text-white px-2 py-1 rounded text-xs">
-                installpay
-              </span>
-            </p>
-            <p className="mt-2">
-              or 3 X Rs.{(product.price / 3).toFixed(2)} with{" "}
-              <span className="font-bold">KOKO</span>
-            </p>
-          </div> */}
-
           {/* Quantity and Add to Bag */}
           <div className="flex items-center gap-4 mb-8">
             <div className="flex items-center border border-gray-300">

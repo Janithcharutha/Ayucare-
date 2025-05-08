@@ -72,6 +72,7 @@ export default function BundleKitsPage() {
   const [editBundle, setEditBundle] = useState<BundleKit | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   // State for search
   const [searchTerm, setSearchTerm] = useState("")
@@ -204,108 +205,134 @@ export default function BundleKitsPage() {
 
   // Add new bundle kit
   const handleAddBundle = async () => {
-    if (newBundle.name && newBundle.products.length > 0) {
-      try {
-        setIsAdding(true)
+    if (!newBundle.name || newBundle.products.length === 0) {
+      toast({
+        title: "Error",
+        description: "Name and products are required",
+        variant: "destructive",
+      })
+      return
+    }
 
-        // Calculate total price
-        const totalPrice = calculateTotalPrice(newBundle.products)
+    try {
+      setIsAdding(true)
 
-        const bundleToAdd = {
-          ...newBundle,
-          slug: newBundle.slug || generateSlug(newBundle.name),
-          price: totalPrice,
-        }
+      // Calculate total price
+      const totalPrice = calculateTotalPrice(newBundle.products)
 
-        const response = await fetch("/api/bundle-kits", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(bundleToAdd),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to add bundle kit")
-        }
-
-        setBundleKits([...bundleKits, data])
-        setNewBundle({
-          name: "",
-          slug: "",
-          description: "",
-          price: 0,
-          discountedPrice: null,
-          images: [],
-          products: [],
-          featured: false,
-          status: "active",
-        })
-
-        toast({
-          title: "Success",
-          description: "Bundle kit added successfully",
-        })
-      } catch (err) {
-        console.error("Error adding bundle kit:", err)
-        toast({
-          title: "Error",
-          description: err instanceof Error ? err.message : "Failed to add bundle kit",
-          variant: "destructive",
-        })
-      } finally {
-        setIsAdding(false)
+      const bundleToCreate = {
+        ...newBundle,
+        name: newBundle.name.trim(),
+        slug: newBundle.slug || newBundle.name.toLowerCase().replace(/\s+/g, '-'),
+        price: totalPrice,
+        status: 'active',
+        // Explicitly set featured from the checkbox state
+        featured: Boolean(newBundle.featured),
+        images: newBundle.images || [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
+
+      const response = await fetch('/api/bundle-kits', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bundleToCreate),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create bundle kit')
+      }
+
+      const createdBundle = await response.json()
+
+      // Update local state with new bundle
+      setBundleKits(prev => [...prev, createdBundle])
+
+      // Reset form
+      setNewBundle({
+        name: '',
+        slug: '',
+        description: '',
+        price: 0,
+        products: [],
+        images: [],
+        featured: false,
+        status: 'active',
+        discountedPrice: null
+      })
+
+      toast({
+        title: "Success",
+        description: "Bundle kit created successfully",
+      })
+    } catch (err) {
+      console.error("Error creating bundle kit:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to create bundle kit",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAdding(false)
     }
   }
 
   // Update bundle kit
-  const handleUpdateBundle = async () => {
-    if (editBundle && editBundle._id) {
-      try {
-        setIsEditing(true)
+  const handleUpdateBundle = async (bundle: BundleKit) => {
+    try {
+      setIsUpdating(true)
 
-        // Calculate total price
-        const totalPrice = calculateTotalPrice(editBundle.products)
-
-        const bundleToUpdate = {
-          ...editBundle,
-          price: totalPrice,
-        }
-
-        const response = await fetch(`/api/bundle-kits/${editBundle._id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(bundleToUpdate),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to update bundle kit")
-        }
-
-        setBundleKits(bundleKits.map((bundle) => (bundle._id === editBundle._id ? data : bundle)))
-        setEditBundle(null)
-
-        toast({
-          title: "Success",
-          description: "Bundle kit updated successfully",
-        })
-      } catch (err) {
-        console.error("Error updating bundle kit:", err)
-        toast({
-          title: "Error",
-          description: err instanceof Error ? err.message : "Failed to update bundle kit",
-          variant: "destructive",
-        })
-      } finally {
-        setIsEditing(false)
+      // Ensure we have a valid ID
+      if (!bundle._id) {
+        throw new Error("Bundle ID is required")
       }
+
+      // Calculate total price from products
+      const totalPrice = calculateTotalPrice(bundle.products)
+
+      const updateData = {
+        ...bundle,
+        price: totalPrice,
+        featured: Boolean(bundle.featured), // Ensure boolean
+        updatedAt: new Date().toISOString()
+      }
+
+      const response = await fetch(`/api/bundle-kits/${bundle._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update bundle kit')
+      }
+
+      const updatedBundle = await response.json()
+
+      // Update local state
+      setBundleKits(prev => 
+        prev.map(b => b._id === updatedBundle._id ? updatedBundle : b)
+      )
+
+      toast({
+        title: "Success",
+        description: "Bundle kit updated successfully",
+      })
+    } catch (err) {
+      console.error("Error updating bundle kit:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update bundle kit",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUpdating(false)
     }
   }
 
@@ -373,7 +400,7 @@ export default function BundleKitsPage() {
               Add Bundle Kit
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-screen overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Bundle Kit</DialogTitle>
               <DialogDescription>Create a new bundle kit with multiple products.</DialogDescription>
@@ -524,7 +551,8 @@ export default function BundleKitsPage() {
 
       {/* Edit Bundle Dialog */}
       <Dialog open={!!editBundle} onOpenChange={(open) => !open && setEditBundle(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-screen overflow-y-auto">
+
           <DialogHeader>
             <DialogTitle>Edit Bundle Kit</DialogTitle>
             <DialogDescription>Update bundle kit details</DialogDescription>
@@ -673,8 +701,8 @@ export default function BundleKitsPage() {
             <Button variant="outline" onClick={() => setEditBundle(null)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateBundle} disabled={isEditing || (editBundle?.products.length || 0) === 0}>
-              {isEditing ? "Updating..." : "Update Bundle Kit"}
+            <Button onClick={() => handleUpdateBundle(editBundle!)} disabled={isUpdating || (editBundle?.products.length || 0) === 0}>
+              {isUpdating ? "Updating..." : "Update Bundle Kit"}
             </Button>
           </DialogFooter>
         </DialogContent>

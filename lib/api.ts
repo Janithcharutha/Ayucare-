@@ -20,3 +20,4 @@ export const getCategoryData = cache(async (slug: string) => {
     return null
   }
 })
+

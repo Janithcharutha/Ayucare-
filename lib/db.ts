@@ -2,6 +2,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { cache } from "react"
 import type { Product } from '@/lib/types'
 
+
 export interface Category {
   _id: string
   name: string

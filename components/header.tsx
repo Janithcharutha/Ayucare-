@@ -32,6 +32,12 @@ const Header: FC = () => {
   const [error, setError] = useState<string | null>(null)
   const pathname = usePathname()
 
+  // Check if current path is an admin route
+  const isAdminRoute = pathname?.startsWith('/admin')
+
+  // Don't render header in admin routes
+  if (isAdminRoute) return null
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -57,7 +63,7 @@ const Header: FC = () => {
       <div className="flex justify-center items-center py-2 border-b border-beige-dark">
 
       </div>
-      <div className="absolute top-16 left-8">
+      <div className="absolute top-10 left-8">
       <div className="flex gap-4">
           <Button variant="outline" className="rounded-full text-xs h-8 px-4 border-black">
             ISLANDWIDE DELIVERY
@@ -75,17 +81,17 @@ const Header: FC = () => {
       <div className="flex justify-center py-4">
   <Link href="/">
     <Image
-      src="/logo.png"
-      alt="Aroma Bliss Ceylon"
+      src="/logo1.png"
+      alt="Ayucare Natural Beauty Products"
       width={180}
       height={80}
-      className="h-auto scale-[3]"
+      className="h-auto scale-[1.5]"
     />
   </Link>
 </div>
 
       {/* Cart */}
-      <div className="absolute top-16 right-8">
+      <div className="absolute top-10 right-8">
         <Link href="/cart" className="flex items-center gap-2 text-sm font-medium">
           <span>CART</span>
           <span className="text-sm">/ RS.0.00</span>
@@ -96,7 +102,7 @@ const Header: FC = () => {
       {/* Main navigation */}
       <nav className="border-t border-b border-beige-dark">
         <ul className="flex justify-center items-center gap-6 py-4 text-sm">
-          <li>
+        <li>
             <Link href="/" className="hover:text-gray-600 transition-colors">
               HOME
             </Link>
@@ -142,7 +148,7 @@ const Header: FC = () => {
                 </div>
               )}
           </li>
-
+          
           <li>
             <Link href="/offers" className="hover:text-gray-600 transition-colors">
               OFFERS
@@ -153,11 +159,11 @@ const Header: FC = () => {
               BUNDLE KITS
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link href="/gifting" className="hover:text-gray-600 transition-colors">
               GIFTING
             </Link>
-          </li>
+          </li> */}
           <li
             className="relative dropdown"
             onMouseEnter={() => setIsBranchesOpen(true)}

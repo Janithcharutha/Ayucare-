@@ -1,7 +1,15 @@
+"use client"
+
+import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { Facebook, Instagram, Twitter } from "lucide-react"
 
 export default function Footer() {
+  const pathname = usePathname()
+  
+  // Don't render footer in admin routes
+  if (pathname?.startsWith('/admin')) return null
+
   return (
     <footer className="bg-beige-dark text-gray-800 pt-16 pb-8">
       <div className="container mx-auto">
@@ -93,7 +101,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-300 mt-12 pt-8 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} Aroma Bliss Ceylon. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Ayucare Natural Beauty Products. All rights reserved.</p>
         </div>
       </div>
     </footer>

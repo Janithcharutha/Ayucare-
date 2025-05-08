@@ -39,7 +39,7 @@ interface Settings {
 export default function SettingsPage() {
   const { toast } = useToast()
   const [settings, setSettings] = useState<Settings>({
-    storeName: "Aroma Bliss Ceylon",
+    storeName: "Ayucare Natural Beauty Products",
     storeEmail: "info@aromablissceylon.lk",
     storePhone: "+94 11 234 5678",
     storeAddress: "123 Temple Road, Colombo",
