@@ -11,10 +11,10 @@ type RouteParams = {
 
 export async function GET(
   request: NextRequest,
-  context: RouteParams
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const { id } = params
 
     const db = await connectToDatabase()
 
@@ -40,10 +40,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: RouteParams
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const { id } = params
 
     // Validate ID format
     if (!id || !ObjectId.isValid(id)) {
@@ -130,10 +130,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: RouteParams
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const { id } = params
 
     const db = await connectToDatabase()
 
