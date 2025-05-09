@@ -1,23 +1,33 @@
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import type { BundleKit } from "@/types/bundle-kit"
 
-// Make the component async to fetch data
-async function BundleKitsPage() {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || ''
-  // Fetch bundles from the API
-  const response = await fetch(`${baseUrl}/api/bundle-kits`, {
-    cache: 'no-store', // Disable caching to always get fresh data
-    headers: {
-      'Content-Type': 'application/json',
+export default function BundleKitsPage() {
+  const bundles = [
+    {
+      id: 1,
+      name: "Skincare Essentials",
+      price: 4500,
+      description: "Complete daily skincare routine with our bestsellers",
+      products: ["Face Cleanser", "Toner", "Moisturizer", "Sunscreen"],
+      savings: 1000
     },
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch bundle kits')
-  }
-
-  const bundles: BundleKit[] = await response.json()
+    {
+      id: 2,
+      name: "Hair Care Bundle",
+      price: 3800,
+      description: "Transform your hair care routine with natural products",
+      products: ["Herbal Shampoo", "Hair Oil", "Hair Mask", "Leave-in Conditioner"],
+      savings: 800
+    },
+    {
+      id: 3,
+      name: "Body Care Set",
+      price: 5200,
+      description: "Luxurious body care products for daily pampering",
+      products: ["Body Wash", "Body Scrub", "Body Lotion", "Hand Cream"],
+      savings: 1200
+    }
+  ]
 
   return (
     <div className="container mx-auto py-12">
@@ -31,13 +41,10 @@ async function BundleKitsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {bundles.map((bundle) => (
-          <div 
-            key={typeof bundle._id === 'string' ? bundle._id : bundle._id?.toString()} 
-            className="bg-white rounded-lg overflow-hidden shadow-md"
-          >
+          <div key={bundle.id} className="bg-white rounded-lg overflow-hidden shadow-md">
             <div className="relative h-[250px]">
               <Image
-                src={bundle.images[0] || `/placeholder.svg?height=250&width=400&text=${bundle.name}`}
+                src={`/placeholder.svg?height=250&width=400&text=${bundle.name}`}
                 alt={bundle.name}
                 fill
                 className="object-cover"
@@ -49,28 +56,15 @@ async function BundleKitsPage() {
               <div className="mb-4">
                 <h3 className="font-medium mb-2">Includes:</h3>
                 <ul className="list-disc list-inside text-gray-700">
-                  {bundle.products.map((product) => (
-                    <li 
-                      key={typeof product.productId === 'string' 
-                        ? product.productId 
-                        : product.productId.toString()
-                      }
-                    >
-                      {product.productName}
-                    </li>
+                  {bundle.products.map((product, index) => (
+                    <li key={index}>{product}</li>
                   ))}
                 </ul>
               </div>
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-xl font-semibold">
-                    RS. {bundle.price.toFixed(2)}
-                  </p>
-                  {bundle.discountedPrice && (
-                    <p className="text-green-600 text-sm">
-                      Save RS. {(bundle.price - bundle.discountedPrice).toFixed(2)}
-                    </p>
-                  )}
+                  <p className="text-xl font-semibold">RS. {bundle.price}.00</p>
+                  <p className="text-green-600 text-sm">Save RS. {bundle.savings}.00</p>
                 </div>
                 <Button>Add to Cart</Button>
               </div>
@@ -81,5 +75,3 @@ async function BundleKitsPage() {
     </div>
   )
 }
-
-export default BundleKitsPage

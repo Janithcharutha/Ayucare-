@@ -8,7 +8,7 @@ import Footer from '@/components/footer'
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Ayucare Natural Beauty Products",
+  title: "Aroma Bliss Ceylon",
   description: "Natural beauty and wellness products from Ceylon",
   generator: 'v0.dev'
 }

@@ -34,7 +34,7 @@ export default function AdminLayout({
     { name: "Products", href: "/admin/products", icon: Package },
     { name: "Offers", href: "/admin/offers", icon: Tag },
     { name: "Bundle Kits", href: "/admin/bundle-kits", icon: Package },
-    // { name: "Gifting", href: "/admin/gifting", icon: Gift },
+    { name: "Gifting", href: "/admin/gifting", icon: Gift },
     { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
     { name: "Customers", href: "/admin/customers", icon: Users },
     { name: "Settings", href: "/admin/settings", icon: Settings },

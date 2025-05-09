@@ -220,23 +220,12 @@ export default function OffersPage() {
     }
   }
 
-  // Add a safe search filter function
-  const filterOffers = (offers: Offer[], searchQuery: string) => {
-    if (!searchQuery) return offers;
-    
-    const query = searchQuery.toLowerCase().trim();
-    return offers.filter(offer => {
-      const productName = offer.productName || '';
-      const productSlug = offer.productSlug || '';
-      return (
-        productName.toLowerCase().includes(query) ||
-        productSlug.toLowerCase().includes(query)
-      );
-    });
-  };
-
-  // Use the safe filter function
-  const filteredOffers = filterOffers(offers, searchTerm);
+  // Filter offers based on search term
+  const filteredOffers = offers.filter(
+    (offer) =>
+      offer.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      offer.productSlug.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
   // Get available products (those without existing offers)
   const availableProducts = products.filter((product) => !offers.some((offer) => offer.productId === product._id))
@@ -439,11 +428,10 @@ export default function OffersPage() {
                       <div className="flex items-center gap-3">
                         <div className="relative w-12 h-12 rounded overflow-hidden">
                           <Image
-                            src={offer.productImage || "/placeholder.svg"}
-                            alt={`Product image for ${offer.productName}`}
+                            src={offer.productImage || "/placeholder.svg?height=100&width=100&text=No+Image"}
+                            alt={offer.productName}
                             fill
                             className="object-cover"
-                            unoptimized={process.env.NODE_ENV === 'development'}
                           />
                         </div>
                         <div>
