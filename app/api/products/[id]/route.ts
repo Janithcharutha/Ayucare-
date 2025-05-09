@@ -2,31 +2,7 @@ import { NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const { id } = params
 
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
-    }
-
-    const db = await connectToDatabase()
-    const product = await db.collection("products").findOne({ _id: new ObjectId(id) })
-
-    if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 })
-    }
-
-    // Convert MongoDB ObjectId to string
-    return NextResponse.json({
-      ...product,
-      _id: product._id.toString(),
-    })
-  } catch (error) {
-    console.error("Error fetching product:", error)
-    return NextResponse.json({ error: "Failed to fetch product" }, { status: 500 })
-  }
-}
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
