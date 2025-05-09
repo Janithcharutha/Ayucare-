@@ -1,30 +1,34 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+type Props = {
+  params: { id: string }
+}
+
+export async function GET(
+  _request: NextRequest,
+  props: Props
+) {
   try {
-    const { id } = params
+    const { id } = props.params
+    const db = await connectToDatabase()
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid category ID" }, { status: 400 })
     }
 
-    const db = await connectToDatabase()
-    const category = await db.collection("categories").findOne({ _id: new ObjectId(id) })
+    const category = await db.collection("categories").findOne({ 
+      _id: new ObjectId(id) 
+    })
 
     if (!category) {
       return NextResponse.json({ error: "Category not found" }, { status: 404 })
     }
 
-    // Convert MongoDB ObjectId to string
     return NextResponse.json({
       ...category,
-      _id: category._id.toString(),
-      subcategories: category.subcategories.map((subcategory: any) => ({
-        ...subcategory,
-        _id: subcategory._id.toString(),
-      })),
+      _id: category._id.toString()
     })
   } catch (error) {
     console.error("Error fetching category:", error)
@@ -32,22 +36,25 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  props: Props
+) {
   try {
-    const { id } = params
+    const { id } = props.params
+    const db = await connectToDatabase()
     const body = await request.json()
-    const { name, slug, description, subcategories, image } = body
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid category ID" }, { status: 400 })
     }
 
+    const { name, slug, description, subcategories, image } = body
+
     // Validate required fields
     if (!name || !slug) {
       return NextResponse.json({ error: "Name and slug are required" }, { status: 400 })
     }
-
-    const db = await connectToDatabase()
 
     // Check if another category with the same slug exists (excluding this one)
     const existingCategory = await db.collection("categories").findOne({ slug, _id: { $ne: new ObjectId(id) } })
@@ -105,15 +112,17 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  _request: NextRequest,
+  props: Props
+) {
   try {
-    const { id } = params
+    const { id } = props.params
+    const db = await connectToDatabase()
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid category ID" }, { status: 400 })
     }
-
-    const db = await connectToDatabase()
 
     // Check if category exists
     const category = await db.collection("categories").findOne({ _id: new ObjectId(id) })
