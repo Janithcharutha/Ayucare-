@@ -1,71 +1,74 @@
-import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import { ObjectId } from 'mongodb'
-import type { Category, Subcategory } from '@/lib/types'
+import { type NextRequest, NextResponse } from "next/server"
+import { connectToDatabase } from "@/lib/mongodb"
+import { ObjectId } from "mongodb"
 
-function formatSubcategory(sub: any): Subcategory {
-  return {
-    _id: sub._id ? sub._id.toString() : new ObjectId().toString(),
-    name: sub.name,
-    slug: sub.slug,
-    description: sub.description || ''
-  }
-}
-
-function formatCategory(doc: any): Category {
-  return {
-    _id: doc._id.toString(),
-    name: doc.name,
-    slug: doc.slug,
-    description: doc.description || '',
-    image: doc.image || '',
-    subcategories: (doc.subcategories || []).map(formatSubcategory),
-    createdAt: doc.createdAt || new Date(),
-    updatedAt: doc.updatedAt || new Date()
-  }
-}
-
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const slug = searchParams.get('slug')
-    
     const db = await connectToDatabase()
-    
-    if (slug) {
-      const category = await db.collection("categories").findOne({ slug })
-      if (!category) return NextResponse.json([], { status: 404 })
-      return NextResponse.json([formatCategory(category)])
-    }
-    
     const categories = await db.collection("categories").find({}).toArray()
-    return NextResponse.json(categories.map(formatCategory))
+
+    // Convert MongoDB ObjectId to string for each category and subcategory
+    const formattedCategories = categories.map((category) => ({
+      ...category,
+      _id: category._id.toString(),
+      subcategories: category.subcategories.map((subcategory: any) => ({
+        ...subcategory,
+        _id: subcategory._id.toString(),
+      })),
+    }))
+
+    return NextResponse.json(formattedCategories)
   } catch (error) {
     console.error("Error fetching categories:", error)
     return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 })
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const db = await connectToDatabase()
-    
-    const now = new Date()
-    const doc = {
-      ...body,
-      createdAt: now,
-      updatedAt: now,
-      subcategories: body.subcategories.map((sub: any) => ({
-        ...sub,
-        _id: new ObjectId()
-      }))
+    const { name, slug, description, subcategories, image } = body
+
+    // Validate required fields
+    if (!name || !slug) {
+      return NextResponse.json({ error: "Name and slug are required" }, { status: 400 })
     }
-    
-    const result = await db.collection("categories").insertOne(doc)
-    const newCategory = await db.collection("categories").findOne({ _id: result.insertedId })
-    
-    return NextResponse.json(formatCategory(newCategory))
+
+    // Check if category with the same slug already exists
+    const db = await connectToDatabase()
+    const existingCategory = await db.collection("categories").findOne({ slug })
+
+    if (existingCategory) {
+      return NextResponse.json({ error: "Category with this slug already exists" }, { status: 400 })
+    }
+
+    // Add _id to each subcategory
+    const subcategoriesWithIds = (subcategories || []).map((subcategory: any) => ({
+      ...subcategory,
+      _id: new ObjectId(),
+    }))
+
+    // Create new category
+    const newCategory = {
+      name,
+      slug,
+      description: description || "",
+      image: image || "",
+      subcategories: subcategoriesWithIds,
+      createdAt: new Date(),
+    }
+
+    const result = await db.collection("categories").insertOne(newCategory)
+
+    // Return the created category with string IDs
+    return NextResponse.json({
+      ...newCategory,
+      _id: result.insertedId.toString(),
+      subcategories: subcategoriesWithIds.map((subcategory: any) => ({
+        ...subcategory,
+        _id: subcategory._id.toString(),
+      })),
+    })
   } catch (error) {
     console.error("Error creating category:", error)
     return NextResponse.json({ error: "Failed to create category" }, { status: 500 })

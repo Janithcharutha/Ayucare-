@@ -1,141 +1,87 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const db = await connectToDatabase()
-    
-    const offers = await db
-      .collection("offers")
-      .aggregate([
-        {
-          $match: { 
-            status: "active",
-            startDate: { 
-              $lte: new Date().toISOString().split('T')[0]
-            },
-            endDate: { 
-              $gte: new Date().toISOString().split('T')[0]
-            }
-          }
-        },
-        {
-          $lookup: {
-            from: "products",
-            localField: "productId",
-            foreignField: "_id",
-            as: "product"
-          }
-        },
-        { $unwind: "$product" },
-        {
-          $project: {
-            _id: 1,
-            productId: 1,
-            discountPercentage: 1,
-            discountedPrice: 1,
-            startDate: 1,
-            endDate: 1,
-            status: 1,
-            createdAt: 1,
-            productName: "$product.name",
-            productSlug: "$product.slug",
-            productCategory: "$product.category",
-            productCategoryName: "$product.categoryName",
-            productImage: { $first: "$product.images" },
-            originalPrice: "$product.price",
-            productDescription: "$product.description"
-          }
-        }
-      ])
-      .toArray()
+    const offers = await db.collection("offers").find({}).toArray()
 
-    const transformedOffers = offers.map(offer => ({
+    // Convert MongoDB ObjectId to string for each offer
+    const formattedOffers = offers.map((offer) => ({
       ...offer,
       _id: offer._id.toString(),
       productId: offer.productId.toString(),
-      productImage: Array.isArray(offer.productImage) 
-        ? offer.productImage.map((img: string) => 
-            img.startsWith('http') ? img : `${process.env.NEXT_PUBLIC_STORAGE_URL}${img}`
-          )
-        : offer.productImage 
-          ? [offer.productImage].map((img: string) => 
-              img.startsWith('http') ? img : `${process.env.NEXT_PUBLIC_STORAGE_URL}${img}`
-            )
-          : [],
-      startDate: new Date(offer.startDate).toISOString().split('T')[0],
-      endDate: new Date(offer.endDate).toISOString().split('T')[0]
     }))
 
-    return NextResponse.json(transformedOffers)
+    return NextResponse.json(formattedOffers)
   } catch (error) {
     console.error("Error fetching offers:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch offers" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to fetch offers" }, { status: 500 })
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const db = await connectToDatabase()
-    const { productId, discountPercentage, startDate, endDate } = await request.json()
+    const body = await request.json()
+    const { productId, discountPercentage, startDate, endDate } = body
 
     // Validate required fields
     if (!productId || !discountPercentage || !startDate || !endDate) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Required fields are missing" }, { status: 400 })
     }
 
-    // Get product details
-    const product = await db.collection("products").findOne({ 
-      _id: new ObjectId(productId) 
-    })
+    const db = await connectToDatabase()
+
+    // Check if product exists
+    if (!ObjectId.isValid(productId)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
+    }
+
+    const product = await db.collection("products").findOne({ _id: new ObjectId(productId) })
 
     if (!product) {
-      return NextResponse.json(
-        { error: "Product not found" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    }
+
+    // Check if offer for this product already exists
+    const existingOffer = await db.collection("offers").findOne({ productId: new ObjectId(productId) })
+
+    if (existingOffer) {
+      return NextResponse.json({ error: "Offer for this product already exists" }, { status: 400 })
     }
 
     // Calculate discounted price
-    const discountedPrice = Math.round(
-      product.price * (1 - discountPercentage / 100)
-    )
+    const discountedPrice = Math.round(product.price * (1 - Number(discountPercentage) / 100))
 
+    // Create new offer
     const newOffer = {
       productId: new ObjectId(productId),
-      discountPercentage,
+      productName: product.name,
+      productSlug: product.slug,
+      productImage: product.images?.[0] || null,
+      originalPrice: product.price,
       discountedPrice,
+      discountPercentage: Number(discountPercentage),
       startDate,
       endDate,
       status: "active",
-      createdAt: new Date()
+      createdAt: new Date(),
     }
 
     const result = await db.collection("offers").insertOne(newOffer)
 
     // Update product with discounted price
-    await db.collection("products").updateOne(
-      { _id: new ObjectId(productId) },
-      { $set: { discountedPrice } }
-    )
+    await db.collection("products").updateOne({ _id: new ObjectId(productId) }, { $set: { discountedPrice } })
 
+    // Return the created offer with string ID
     return NextResponse.json({
       ...newOffer,
       _id: result.insertedId.toString(),
-      productId: productId
+      productId: productId,
     })
   } catch (error) {
     console.error("Error creating offer:", error)
-    return NextResponse.json(
-      { error: "Failed to create offer" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to create offer" }, { status: 500 })
   }
 }

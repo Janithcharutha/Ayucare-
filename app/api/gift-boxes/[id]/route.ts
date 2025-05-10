@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { id } = params
+    const { id } = context.params
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid gift box ID" }, { status: 400 })
@@ -32,9 +32,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { id } = params
+    const { id } = context.params
     const body = await request.json()
     const { name, slug, description, price, discountedPrice, images, products, featured, status, isCustomizable } = body
 
@@ -100,9 +100,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { id } = params
+    const { id } = context.params
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid gift box ID" }, { status: 400 })
