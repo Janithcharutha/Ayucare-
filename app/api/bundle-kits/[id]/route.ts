@@ -1,30 +1,34 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { NextRequest, NextResponse } from 'next/server'
+import { connectToDatabase } from '@/lib/mongodb'
+import { ObjectId } from 'mongodb'
+import type { BundleKit, BundleProduct } from '@/types/bundle-kit'
 
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
+interface RouteParams {
+  id: string
+}
+
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<RouteParams> }
+) {
+  const { id } = await context.params
+
   try {
-    const { id } = context.params
+    const db = await connectToDatabase()
 
-    if (!ObjectId.isValid(id)) {
+    if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
     }
 
-    const db = await connectToDatabase()
     const bundleKit = await db.collection("bundleKits").findOne({ _id: new ObjectId(id) })
 
     if (!bundleKit) {
       return NextResponse.json({ error: "Bundle kit not found" }, { status: 404 })
     }
 
-    // Convert MongoDB ObjectId to string
     return NextResponse.json({
       ...bundleKit,
-      _id: bundleKit._id.toString(),
-      products: bundleKit.products.map((product: any) => ({
-        ...product,
-        productId: product.productId.toString(),
-      })),
+      _id: bundleKit._id.toString()
     })
   } catch (error) {
     console.error("Error fetching bundle kit:", error)
@@ -32,94 +36,118 @@ export async function GET(request: NextRequest, context: { params: { id: string 
   }
 }
 
-export async function PUT(request: NextRequest, context: { params: { id: string } }) {
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { id } = context.params
-    const body = await request.json()
-    const { name, slug, description, price, discountedPrice, images, products, featured, status } = body
-
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
-    }
-
-    // Validate required fields
-    if (!name || !slug || !products || products.length === 0) {
-      return NextResponse.json({ error: "Required fields are missing" }, { status: 400 })
+    // Validate ID format
+    if (!params.id || !ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { error: "Invalid bundle kit ID" },
+        { status: 400 }
+      )
     }
 
     const db = await connectToDatabase()
-
-    // Check if another bundle kit with the same slug exists (excluding this one)
-    const existingBundle = await db.collection("bundleKits").findOne({ slug, _id: { $ne: new ObjectId(id) } })
-
-    if (existingBundle) {
-      return NextResponse.json({ error: "Another bundle kit with this slug already exists" }, { status: 400 })
-    }
-
-    // Convert product IDs to ObjectId
-    const processedProducts = products.map((product: any) => ({
-      ...product,
-      productId: typeof product.productId === "string" ? new ObjectId(product.productId) : product.productId,
-    }))
-
-    // Update bundle kit
-    const updatedBundleKit = {
-      name,
-      slug,
-      description: description || "",
-      price: Number(price),
-      discountedPrice: discountedPrice ? Number(discountedPrice) : null,
-      images: images || [],
-      products: processedProducts,
-      featured: featured || false,
-      status: status || "active",
-      updatedAt: new Date(),
-    }
-
-    const result = await db
-      .collection("bundleKits")
-      .findOneAndUpdate({ _id: new ObjectId(id) }, { $set: updatedBundleKit }, { returnDocument: "after" })
-
-    if (!result) {
-      return NextResponse.json({ error: "Bundle kit not found" }, { status: 404 })
-    }
-
-    // Convert MongoDB ObjectId to string for response
-    return NextResponse.json({
-      ...result,
-      _id: result._id.toString(),
-      products: result.products.map((product: any) => ({
-        ...product,
-        productId: product.productId.toString(),
-      })),
+    
+    // Check if bundle exists first
+    const existingBundle = await db.collection("bundleKits").findOne({
+      _id: new ObjectId(params.id)
     })
+
+    if (!existingBundle) {
+      return NextResponse.json(
+        { error: "Bundle kit not found" },
+        { status: 404 }
+      )
+    }
+
+    const body = await request.json()
+
+    // Remove immutable fields
+    const { _id, createdAt, updatedAt, ...updateData } = body
+
+    // Process products with validation
+    const processedProducts = updateData.products?.map((product: BundleProduct) => {
+      if (!product.productId || !product.productName) {
+        throw new Error("Product ID and name are required")
+      }
+
+      return {
+        ...product,
+        productId: new ObjectId(product.productId),
+        quantity: Math.max(1, Number(product.quantity) || 1),
+        price: Math.max(0, Number(product.price) || 0)
+      }
+    }) || []
+
+    const result = await db.collection("bundleKits").findOneAndUpdate(
+      { _id: new ObjectId(params.id) },
+      {
+        $set: {
+          name: updateData.name,
+          slug: updateData.slug,
+          description: updateData.description || "",
+          price: Number(updateData.price) || 0,
+          discountedPrice: updateData.discountedPrice ? Number(updateData.discountedPrice) : null,
+          images: Array.isArray(updateData.images) ? updateData.images : [],
+          products: processedProducts,
+          featured: Boolean(updateData.featured),
+          status: updateData.status || 'active',
+          updatedAt: new Date().toISOString()
+        }
+      },
+      { 
+        returnDocument: 'after'
+      }
+    )
+
+    if (!result?.value) {
+      throw new Error("Failed to update bundle kit")
+    }
+
+    return NextResponse.json({
+      ...result.value,
+      _id: result.value._id.toString(),
+      products: result.value.products.map((product: BundleProduct) => ({
+        ...product,
+        productId: product.productId.toString()
+      }))
+    })
+
   } catch (error) {
     console.error("Error updating bundle kit:", error)
-    return NextResponse.json({ error: "Failed to update bundle kit" }, { status: 500 })
+    return NextResponse.json(
+      { 
+        error: error instanceof Error ? error.message : "Failed to update bundle kit",
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      },
+      { status: 500 }
+    )
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
-  try {
-    const { id } = context.params
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<RouteParams> }
+) {
+  const { id } = await context.params
 
-    if (!ObjectId.isValid(id)) {
+  try {
+    const db = await connectToDatabase()
+
+    if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid bundle kit ID" }, { status: 400 })
     }
 
-    const db = await connectToDatabase()
+    const result = await db.collection("bundleKits").deleteOne({ _id: new ObjectId(id) })
 
-    // Check if bundle kit exists
-    const bundleKit = await db.collection("bundleKits").findOne({ _id: new ObjectId(id) })
-
-    if (!bundleKit) {
+    if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Bundle kit not found" }, { status: 404 })
     }
 
-    // Delete bundle kit
-    await db.collection("bundleKits").deleteOne({ _id: new ObjectId(id) })
-
-    return NextResponse.json({ message: "Bundle kit deleted successfully" })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error deleting bundle kit:", error)
     return NextResponse.json({ error: "Failed to delete bundle kit" }, { status: 500 })

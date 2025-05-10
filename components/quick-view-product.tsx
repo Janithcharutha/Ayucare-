@@ -82,8 +82,8 @@ export function QuickViewProduct({ product }: { product: Product }) {
                 <li key={index} className="text-gray-700">{item}</li>
               ))}
             </ul>
-          </div>)
-        }
+          </div>
+        )}
 \
         <div className="flex items-center gap-4 mb-6">
           <div className="flex items-center border border-gray-300">

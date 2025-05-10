@@ -1,8 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const db = await connectToDatabase()
     const giftBoxes = await db.collection("giftBoxes").find({}).toArray()
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { name, slug, description, price, discountedPrice, images, products, featured, status, isCustomizable } = body

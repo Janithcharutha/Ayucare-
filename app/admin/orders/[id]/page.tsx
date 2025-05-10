@@ -9,21 +9,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Metadata } from "next"
+////////////////
 
-type OrderDetailsPageProps = {
+interface PageProps {
   params: {
-    id: string
-  }
+    id: string;
+  };
 }
 
-export const generateMetadata = ({ params }: OrderDetailsPageProps): Metadata => {
-  return {
-    title: `Order ${params.id} | Aroma Bliss Admin`,
-  }
-}
+/////////////
 
-export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
+export default function OrderDetailsPage({ params }: { params: { id: string } }) {
   const { id } = params
 
   // Sample order data
